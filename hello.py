@@ -1,4 +1,4 @@
-from scapy.all import rdpcap, IP
+from scapy.all import rdpcap, IP, IPv6
 from collections import defaultdict
 import socket
 
@@ -8,21 +8,27 @@ def reverse_lookup(ip):
     except Exception:
         return "N/A"
 
-# Load packets
+# Load pcap file
 packets = rdpcap("traffic.pcap")
 
-# Track connections
+# Dictionary to hold connections
 connections = defaultdict(set)
 
 for pkt in packets:
     if IP in pkt:
         src = pkt[IP].src
         dst = pkt[IP].dst
-        connections[src].add(dst)
+    elif IPv6 in pkt:
+        src = pkt[IPv6].src
+        dst = pkt[IPv6].dst
+    else:
+        continue  # Skip non-IP packets
 
-# Display results
-print("\n[+] Device Connection Summary with Hostnames:")
-for src, dst_set in connections.items():
-    for dst in dst_set:
+    connections[src].add(dst)
+
+# Print summary
+print("\n[+] Device Connection Summary (IPv4 and IPv6):")
+for src, dsts in connections.items():
+    for dst in dsts:
         hostname = reverse_lookup(dst)
         print(f" - {src} connected to {dst} ({hostname})")
